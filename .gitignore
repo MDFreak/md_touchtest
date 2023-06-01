@@ -1,1 +1,9 @@
 .autogit
+.pio
+.pio/*
+.pio/*.*
+*.pio
+*.ino
+*.bak
+Parken
+archiv
