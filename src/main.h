@@ -37,6 +37,9 @@
         #endif
 
     #include <prj_config.h>
+    #if (USE_BTOOTH > OFF)
+        #include <BTooth.h>
+      #endif
         //#include <driver\gpio.h>
         //#include <driver\adc.h>
         //#include "freertos/task.h"
@@ -470,6 +473,10 @@
             #if (USE_NTP_SERVER > OFF)
                 void    initNTPTime();
               #endif
+          #endif
+      // --- Bluetooth
+        #if (USE_BTOOTH > OFF)
+
           #endif
 
       // --- webserver

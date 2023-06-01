@@ -15,12 +15,6 @@
     static uint32_t freeHeap    = 10000000;
     static int32_t  tmpval32;
     static int16_t  tmpval16;
-      //static uint64_t anzMsCycles = 0;
-	    //static uint64_t msLast = 0;
-  	  //static uint64_t msPerCycle = 0;
-
-	    //static uint32_t anzMsCycles = 0;
-	    //static uint64_t 	    //static uint64_t msLast      = 0;msLast      = 0;
     static char     cmsg[MSG_MAXLEN+1] = "";
     static char     ctmp30[LOGINTXT_MAX_LEN];
     static String   tmpStr;
@@ -569,6 +563,72 @@
         MessageReceiver msgHdl;
         Network::Client::MQTTv5 mqtt(mqttID.c_str(), &msgHdl);
       #endif
+  // ------ devices
+    #if (USE_BLUETTI > OFF)
+        device_field_data_t* pbluetti_dev_state = NULL;
+        uint8_t              bluIdx             = 0;
+        // --- value storage
+          // INFO device offset sort
+            static String    BLUDEVICE_TYPE           = "---";
+            static String    BLUSERIAL_NUMBER         = "---";
+            static float     BLUARM_VERSION           = 100.0;
+            static float     BLUDSP_VERSION           = 100.0;
+            static uint16_t  BLUDC_INPUT_POWER        = 100;
+            static uint16_t  BLUAC_INPUT_POWER        = 100;
+            static uint16_t  BLUAC_OUTPUT_POWER       = 100;
+            static uint16_t  BLUDC_OUTPUT_POWER       = 100;
+            static float     BLUPOWER_GENERATION      = 100;
+            static uint16_t  BLUTOTAL_BATT_PERC       = 100;
+            static bool      BLUAC_OUTPUT_ON          = 100;
+            static bool      BLUDC_OUTPUT_ON          = 100;
+          // INFO internal
+            static uint16_t  BLUAC_OUTPUT_MODE        = 100;
+            static float     BLUINTERN_AC_VOLT        = 100.0;
+            static float     BLUINTERN_CURR_1         = 100.0;
+            static uint16_t  BLUINTERN_POWER_1        = 100;
+            static float     BLUINTERN_AC_FREQ        = 100.0;
+            static float     BLUINTERN_CURR_2         = 100.0;
+            static uint16_t  BLUINTERN_POWER_2        = 100;
+            static float     BLUAC_INPUT_VOLT         = 100.0;
+            static float     BLUINTERN_CURR_3         = 100.0;
+            static uint16_t  BLUINTERN_POWER_3        = 100;
+            static float     BLUAC_INPUT_FREQ         = 100.0;
+            static float     BLUINT_DC_INP_VOLT       = 100.0;
+            static uint16_t  BLUINT_DC_INP_POW        = 100;
+            static float     BLUINT_DC_INP_CURR       = 100.0;
+            static uint16_t  BLUPACK_NUM_MAX          = 100;
+            static float     BLUTOTAL_BATT_VOLT       = 100.0;
+            static float     BLUTOTAL_BATT_CURR       = 100.0;
+            static uint16_t  BLUPACK_NUM              = 100;
+            static uint16_t  BLUPACK_STATUS           = 100;
+            static float     BLUPACK_VOLTAGE          = 100.0;
+            static uint16_t  BLUPACK_BATT_PERC        = 100;
+            //static uint16_t  BLUCELL_VOTAGES        = 100;
+            static uint16_t  BLUPACK_BMS_VERSION      = 100;
+          // CONTROL elements
+            static uint16_t  BLUUPS_MODE              = 100;
+            static uint16_t  BLUSPLIT_PHASE_ON        = 100;
+            static uint16_t  BLUSPLIT_PH_MACH_MODE    = 100;
+            static uint16_t  BLUSET_PACK_NUM          = 100;
+            static uint16_t  BLUSET_AC_OUT_ON         = 100;
+            static uint16_t  BLUSET_DC_OUT_ON         = 100;
+            static bool      BLUGRID_CHANGE_ON        = 100;
+            static uint16_t  BLUTIME_CTRL_ON          = 100;
+            static uint16_t  BLUBATT_RANGE_START      = 100;
+            static uint16_t  BLUBATT_RANGE_END        = 100;
+            static uint16_t  BLUBLUETOOTH_CONN        = 100;
+            static uint16_t  BLUAUTO_SLEEP_MODE       = 100;
+            static uint16_t  BLULED_CONTROL           = 100;
+            static uint16_t  BLUFIELD_UNDEFINED       = 100;
+        // --- MQTT value as string
+          static String valBLU[FIELD_IDX_MAX];
+        // --- MQTT publish flag
+          static int8_t pubBLU[FIELD_IDX_MAX];
+        // --- MQTT topic
+          #if (USE_MQTT > OFF)
+              static String topBLU[FIELD_IDX_MAX];
+            #endif
+      #endif
   // ------ sensors ----------------------
     #if (USE_BME280_I2C > OFF) // 1
         static Adafruit_BME280  bme1;
@@ -972,7 +1032,7 @@
                         {
                           SVAL("   file not found ", "/test.txt");
                         }
-                      sdFile = SD.open("/test.txt", FILE_WRITE); // open "file.txt" to write data
+                      sdFile = SD.open("/test.txt", FILE_WRITE, true); // open "file.txt" to write data
                       if (sdFile)
                         {
                           sdFile.printf("test ok\n"); // write test text
@@ -1066,6 +1126,13 @@
                     startWebServer();
                   #endif
               }
+            #endif
+        // start bluetooth
+          #if (USE_BTOOTH)
+              SHEXVAL(" init bluetooth...", (uint32_t) pbluetti_dev_state);
+              pbluetti_dev_state = getpDevField();
+              initBluetooth();
+              SHEXVAL(" ...init bluetooth", (uint32_t) pbluetti_dev_state);
             #endif
         // start MQTT
           #if (USE_MQTT > OFF)
@@ -1549,6 +1616,9 @@
             mcpwm_capture_enable(MCPWM_UNIDX_0, MCPWM_SELECT_CAP0, MCPWM_POS_EDGE, 1);
             pwmInVal->highVal = mcpwm_capture_signal_get_value(MCPWM_UNIDX_0, MCPWM_SELECT_CAP0);
           #endif
+        #if (USE_MQTT > OFF)
+            //readMQTTmsg();
+          #endif
       // --- standard input cycle ---
         #ifdef USE_INPUT_CYCLE
             if (inputT.TOut())
@@ -1925,6 +1995,9 @@
         #if (USE_BME680_I2C)
             tmpval16 = bme680.remainingReadingMillis();
             if (tmpval16 <= 0) { bme680.endReading(); }
+          #endif
+        #if (USE_BTOOTH)
+            handleBluetooth();
           #endif
       // --- standard output cycle ---
         #ifdef USE_OUTPUT_CYCLE
@@ -3125,6 +3198,80 @@
                               //SOUT((uint32_t) millis()); SOUT(" ");
                                   //SOUT(outStr); SOUT(" ");
                         dispText(outStr ,  0, 0, outStr.length());
+                      #endif
+                case 22: // Bluetti
+                    #if (USE_BLUETTI > OFF)
+                        #if (USE_MQTT > OFF)
+                            if (errMQTT == MD_OK)
+                              {
+                                if (pbluetti_dev_state[bluIdx].f_new > OFF) // new value
+                                  {
+                                    switch(bluIdx)
+                                      {
+                                        // INFO device offset sort
+                                          case DEVICE_TYPE:         valBLU[outpIdx] = BLUDEVICE_TYPE;       break;
+                                          case SERIAL_NUMBER:       valBLU[outpIdx] = BLUSERIAL_NUMBER;     break;
+                                          case ARM_VERSION:         valBLU[outpIdx] = BLUARM_VERSION;       break;
+                                          case DSP_VERSION:         valBLU[outpIdx] = BLUDSP_VERSION;       break;
+                                          case DC_INPUT_POWER:      valBLU[outpIdx] = BLUDC_INPUT_POWER;    break;
+                                          case AC_INPUT_POWER:      valBLU[outpIdx] = BLUAC_INPUT_POWER;    break;
+                                          case AC_OUTPUT_POWER:     valBLU[outpIdx] = BLUAC_OUTPUT_POWER;   break;
+                                          case DC_OUTPUT_POWER:     valBLU[outpIdx] = BLUDC_OUTPUT_POWER;   break;
+                                          case POWER_GENERATION:    valBLU[outpIdx] = BLUPOWER_GENERATION;  break;
+                                          case TOTAL_BATT_PERC:     valBLU[outpIdx] = BLUTOTAL_BATT_PERC;   break;
+                                          case AC_OUTPUT_ON:        valBLU[outpIdx] = BLUAC_OUTPUT_ON;      break;
+                                          case DC_OUTPUT_ON:        valBLU[outpIdx] = BLUDC_OUTPUT_ON;      break;
+                                        // INFO internal
+                                          case AC_OUTPUT_MODE:      valBLU[outpIdx] = BLUAC_OUTPUT_MODE;    break;
+                                          case INTERN_AC_VOLT:      valBLU[outpIdx] = BLUINTERN_AC_VOLT;    break;
+                                          case INTERN_CURR_1:       valBLU[outpIdx] = BLUINTERN_CURR_1;     break;
+                                          case INTERN_POWER_1:      valBLU[outpIdx] = BLUINTERN_POWER_1;    break;
+                                          case INTERN_AC_FREQ:      valBLU[outpIdx] = BLUINTERN_AC_FREQ;    break;
+                                          case INTERN_CURR_2:       valBLU[outpIdx] = BLUINTERN_CURR_2;     break;
+                                          case INTERN_POWER_2:      valBLU[outpIdx] = BLUINTERN_POWER_2;    break;
+                                          case AC_INPUT_VOLT:       valBLU[outpIdx] = BLUAC_INPUT_VOLT;     break;
+                                          case INTERN_CURR_3:       valBLU[outpIdx] = BLUINTERN_CURR_3;     break;
+                                          case INTERN_POWER_3:      valBLU[outpIdx] = BLUINTERN_POWER_3;    break;
+                                          case AC_INPUT_FREQ:       valBLU[outpIdx] = BLUAC_INPUT_FREQ;     break;
+                                          case INT_DC_INP_VOLT:     valBLU[outpIdx] = BLUINT_DC_INP_VOLT;   break;
+                                          case INT_DC_INP_POW:      valBLU[outpIdx] = BLUINT_DC_INP_POW;    break;
+                                          case INT_DC_INP_CURR:     valBLU[outpIdx] = BLUINT_DC_INP_CURR;   break;
+                                          case PACK_NUM_MAX:        valBLU[outpIdx] = BLUPACK_NUM_MAX;      break;
+                                          case TOTAL_BATT_VOLT:     valBLU[outpIdx] = BLUTOTAL_BATT_VOLT;   break;
+                                          case TOTAL_BATT_CURR:     valBLU[outpIdx] = BLUTOTAL_BATT_CURR;   break;
+                                          case PACK_NUM:            valBLU[outpIdx] = BLUPACK_NUM;          break;
+                                          case PACK_STATUS:         valBLU[outpIdx] = BLUPACK_STATUS;       break;
+                                          case PACK_VOLTAGE:        valBLU[outpIdx] = BLUPACK_VOLTAGE;      break;
+                                          case PACK_BATT_PERC:      valBLU[outpIdx] = BLUPACK_BATT_PERC;    break;
+                                          //case CELL_VOTAGES:      valBLU[outpIdx] = BLUCELL_VOTAGES; break;
+                                          case PACK_BMS_VERSION:    valBLU[outpIdx] = BLUPACK_BMS_VERSION;  break;
+                                        // CONTROL elements
+                                          case UPS_MODE:            valBLU[outpIdx] = BLUUPS_MODE;          break;
+                                          case SPLIT_PHASE_ON:      valBLU[outpIdx] = BLUSPLIT_PHASE_ON;    break;
+                                          case SPLIT_PH_MACH_MODE:  valBLU[outpIdx] = BLUSPLIT_PH_MACH_MODE;break;
+                                          case SET_PACK_NUM:        valBLU[outpIdx] = BLUSET_PACK_NUM;      break;
+                                          case SET_AC_OUT_ON:       valBLU[outpIdx] = BLUSET_AC_OUT_ON;     break;
+                                          case SET_DC_OUT_ON:       valBLU[outpIdx] = BLUSET_DC_OUT_ON;     break;
+                                          case GRID_CHANGE_ON:      valBLU[outpIdx] = BLUGRID_CHANGE_ON;    break;
+                                          case TIME_CTRL_ON:        valBLU[outpIdx] = BLUTIME_CTRL_ON;      break;
+                                          case BATT_RANGE_START:    valBLU[outpIdx] = BLUBATT_RANGE_START;  break;
+                                          case BATT_RANGE_END:      valBLU[outpIdx] = BLUBATT_RANGE_END;    break;
+                                          case BLUETOOTH_CONN:      valBLU[outpIdx] = BLUBLUETOOTH_CONN;    break;
+                                          case AUTO_SLEEP_MODE:     valBLU[outpIdx] = BLUAUTO_SLEEP_MODE;   break;
+                                          case LED_CONTROL:         valBLU[outpIdx] = BLULED_CONTROL;       break;
+                                          case FIELD_UNDEFINED:     valBLU[outpIdx] = BLUFIELD_UNDEFINED;   break;
+                                          default:   break;
+                                      }
+                                    errMQTT = (int8_t) mqtt.publish(topBLU[bluIdx].c_str(), (uint8_t*) valBLU[bluIdx].c_str(), valBLU[bluIdx].length());
+                                    soutMQTTerr(valBLU[bluIdx].c_str(), errMQTT);
+                                    pbluetti_dev_state[bluIdx].f_new = FALSE;
+                                    //S2VAL(" publish ", topBLU[outpIdx], valBLU[outpIdx].c_str());
+                                  }
+                                bluIdx++;
+                                if (bluIdx >= FIELD_IDX_MAX)
+                                  { bluIdx  = 0; }
+                              }
+                          #endif
                       #endif
                   break;
                 default: // system
@@ -4802,10 +4949,168 @@
 
           void connectMQTT() // TODO: move all subcribes to here -> reconnect
             {
+              char cout[50] = "";
               errMQTT = (int8_t) mqtt.connectTo(MQTT_HOST, MQTT_PORT);
               soutMQTTerr(" MQTT connect", errMQTT);
               if (errMQTT == MD_OK)
                 {
+                  #if (USE_BLUETTI > OFF)
+                      for (uint8_t i = 0; i < FIELD_IDX_MAX ; i++)
+                        {
+                          switch (i)
+                            {
+                              // INFO device offset sort
+                                case DEVICE_TYPE:
+                                    pbluetti_dev_state[i].p_f_value = (void*) &BLUDEVICE_TYPE;
+                                  break;
+                                case SERIAL_NUMBER:
+                                      pbluetti_dev_state[i].p_f_value = (void*) &BLUSERIAL_NUMBER;
+                                  break;
+                                case  ARM_VERSION:
+                                      pbluetti_dev_state[i].p_f_value = (void*) &BLUARM_VERSION;
+                                  break;
+                                case  DSP_VERSION:
+                                      pbluetti_dev_state[i].p_f_value = (void*) &BLUDSP_VERSION;
+                                  break;
+                                case  DC_INPUT_POWER:
+                                      pbluetti_dev_state[DC_INPUT_POWER].p_f_value = (void*) &BLUDC_INPUT_POWER;
+                                  break;
+                                case  AC_INPUT_POWER:
+                                      pbluetti_dev_state[AC_INPUT_POWER].p_f_value = (void*) &BLUAC_INPUT_POWER;
+                                  break;
+                                case  AC_OUTPUT_POWER:
+                                      pbluetti_dev_state[AC_OUTPUT_POWER].p_f_value = (void*) &BLUAC_OUTPUT_POWER;
+                                  break;
+                                case  DC_OUTPUT_POWER:
+                                      pbluetti_dev_state[DC_OUTPUT_POWER].p_f_value = (void*) &BLUDC_OUTPUT_POWER;
+                                  break;
+                                case  POWER_GENERATION:
+                                      pbluetti_dev_state[POWER_GENERATION].p_f_value = (void*) &BLUPOWER_GENERATION;
+                                  break;
+                                case  TOTAL_BATT_PERC:
+                                      pbluetti_dev_state[TOTAL_BATT_PERC].p_f_value = (void*) &BLUTOTAL_BATT_PERC;
+                                  break;
+                                case  AC_OUTPUT_ON:
+                                      pbluetti_dev_state[AC_OUTPUT_ON].p_f_value = (void*) &BLUARM_VERSION;
+                                  break;
+                                case  DC_OUTPUT_ON:
+                                      pbluetti_dev_state[DC_OUTPUT_ON].p_f_value = (void*) &BLUDC_OUTPUT_ON;
+                                  break;
+                              // INFO internal
+                                case  AC_OUTPUT_MODE:
+                                      pbluetti_dev_state[AC_OUTPUT_MODE].p_f_value = (void*) &BLUAC_OUTPUT_MODE;
+                                  break;
+                                case  INTERN_AC_VOLT:
+                                      pbluetti_dev_state[INTERN_AC_VOLT].p_f_value = (void*) &BLUINTERN_AC_VOLT;
+                                  break;
+                                case  INTERN_CURR_1:
+                                      pbluetti_dev_state[INTERN_CURR_1].p_f_value = (void*) &BLUINTERN_CURR_1;
+                                  break;
+                                case  INTERN_POWER_1:
+                                      pbluetti_dev_state[INTERN_POWER_1].p_f_value = (void*) &BLUINTERN_POWER_1;
+                                  break;
+                                case  INTERN_AC_FREQ:
+                                      pbluetti_dev_state[INTERN_AC_FREQ].p_f_value = (void*) &BLUINTERN_AC_FREQ;
+                                  break;
+                                case  INTERN_CURR_2:
+                                      pbluetti_dev_state[INTERN_CURR_2].p_f_value = (void*) &BLUINTERN_CURR_2;
+                                  break;
+                                case  INTERN_POWER_2:
+                                      pbluetti_dev_state[INTERN_POWER_2].p_f_value = (void*) &BLUINTERN_POWER_2;
+                                  break;
+                                case  AC_INPUT_VOLT:
+                                      pbluetti_dev_state[AC_INPUT_VOLT].p_f_value = (void*) &BLUAC_INPUT_VOLT;
+                                  break;
+                                case  INTERN_CURR_3:
+                                      pbluetti_dev_state[INTERN_CURR_3].p_f_value = (void*) &BLUINTERN_CURR_3;
+                                  break;
+                                case  INTERN_POWER_3:
+                                      pbluetti_dev_state[INTERN_POWER_3].p_f_value = (void*) &BLUINTERN_POWER_3;
+                                  break;
+                                case  AC_INPUT_FREQ:
+                                      pbluetti_dev_state[AC_INPUT_FREQ].p_f_value = (void*) &BLUAC_INPUT_FREQ;
+                                  break;
+                                case  INT_DC_INP_VOLT:
+                                      pbluetti_dev_state[INT_DC_INP_VOLT].p_f_value = (void*) &BLUINT_DC_INP_VOLT;
+                                  break;
+                                case  INT_DC_INP_POW:
+                                      pbluetti_dev_state[INT_DC_INP_POW].p_f_value = (void*) &BLUINT_DC_INP_POW;
+                                  break;
+                                case  INT_DC_INP_CURR:
+                                      pbluetti_dev_state[INT_DC_INP_CURR].p_f_value = (void*) &BLUINT_DC_INP_CURR;
+                                  break;
+                                case  PACK_NUM_MAX:
+                                      pbluetti_dev_state[PACK_NUM_MAX].p_f_value = (void*) &BLUPACK_NUM_MAX;
+                                  break;
+                                case  TOTAL_BATT_VOLT:
+                                      pbluetti_dev_state[TOTAL_BATT_VOLT].p_f_value = (void*) &BLUTOTAL_BATT_VOLT;
+                                  break;
+                                case  TOTAL_BATT_CURR:
+                                      pbluetti_dev_state[TOTAL_BATT_CURR].p_f_value = (void*) &BLUTOTAL_BATT_CURR;
+                                  break;
+                                case  PACK_NUM:
+                                      pbluetti_dev_state[PACK_NUM].p_f_value = (void*) &BLUPACK_NUM;
+                                  break;
+                                case  PACK_STATUS:
+                                      pbluetti_dev_state[PACK_STATUS].p_f_value = (void*) &BLUPACK_STATUS;
+                                  break;
+                                case  PACK_VOLTAGE:
+                                      pbluetti_dev_state[PACK_VOLTAGE].p_f_value = (void*) &BLUPACK_VOLTAGE;
+                                  break;
+                                case  PACK_BATT_PERC:
+                                      pbluetti_dev_state[PACK_BATT_PERC].p_f_value = (void*) &BLUPACK_BATT_PERC;
+                                  break;
+                                //case  CELL_VOTAGES:
+                                  //break;
+                              // CONTROL elements
+                                case  UPS_MODE:
+                                      pbluetti_dev_state[UPS_MODE].p_f_value = (void*) &BLUUPS_MODE;
+                                  break;
+                                case  SPLIT_PHASE_ON:
+                                      pbluetti_dev_state[SPLIT_PHASE_ON].p_f_value = (void*) &BLUSPLIT_PHASE_ON;
+                                  break;
+                                case  SPLIT_PH_MACH_MODE:
+                                      pbluetti_dev_state[SPLIT_PH_MACH_MODE].p_f_value = (void*) &BLUSPLIT_PH_MACH_MODE;
+                                  break;
+                                case  SET_PACK_NUM:
+                                      pbluetti_dev_state[SET_PACK_NUM].p_f_value = (void*) &BLUSET_PACK_NUM;
+                                  break;
+                                case  SET_AC_OUT_ON:
+                                      pbluetti_dev_state[SET_AC_OUT_ON].p_f_value = (void*) &BLUSET_AC_OUT_ON;
+                                  break;
+                                case  SET_DC_OUT_ON:
+                                      pbluetti_dev_state[SET_DC_OUT_ON].p_f_value = (void*) &BLUSET_DC_OUT_ON;
+                                  break;
+                                case  GRID_CHANGE_ON:
+                                      pbluetti_dev_state[GRID_CHANGE_ON].p_f_value = (void*) &BLUGRID_CHANGE_ON;
+                                  break;
+                                case  TIME_CTRL_ON:
+                                      pbluetti_dev_state[TIME_CTRL_ON].p_f_value = (void*) &BLUTIME_CTRL_ON;
+                                  break;
+                                case  BATT_RANGE_START:
+                                      pbluetti_dev_state[BATT_RANGE_START].p_f_value = (void*) &BLUBATT_RANGE_START;
+                                  break;
+                                case  BATT_RANGE_END:
+                                      pbluetti_dev_state[BATT_RANGE_END].p_f_value = (void*) &BLUBATT_RANGE_END;
+                                  break;
+                                case  BLUETOOTH_CONN:
+                                      pbluetti_dev_state[BLUETOOTH_CONN].p_f_value = (void*) &BLUBLUETOOTH_CONN;
+                                  break;
+                                case  AUTO_SLEEP_MODE:
+                                      pbluetti_dev_state[AUTO_SLEEP_MODE].p_f_value = (void*) &BLUAUTO_SLEEP_MODE;
+                                  break;
+                                case  LED_CONTROL:
+                                      pbluetti_dev_state[LED_CONTROL].p_f_value = (void*) &BLULED_CONTROL;
+                                  break;
+                            }
+                          //S2VAL(" init ", DEVICE_F_NAMES[i], (uint32_t) pbluetti_dev_state[i].p_f_value);
+                          topBLU[i] = topDevice + DEVICE_F_NAMES[i];
+                          S2VAL(" make topBLU ", DEVICE_F_NAMES[i], topBLU[i]);
+                          errMQTT = (int8_t) mqtt.subscribe(topBLU[i].c_str());
+                          sprintf(cout, "MQTT subscribe %s\n", DEVICE_F_NAMES[i]);
+                          soutMQTTerr(cout, errMQTT);
+                        }
+                    #endif
                   #if (USE_BME280_I2C > OFF) // 1
                       topBME280t = topDevice + topBME280t;
                       errMQTT = (int8_t) mqtt.subscribe(topBME280t.c_str());
@@ -5013,18 +5318,18 @@
 
           void soutMQTTerr(String text, int8_t errMQTT)
             {
-              if (errMQTT == MD_OK)
+              if (errMQTT == -3)
                 {
-                  errMQTTold = errMQTT;
+                  errMQTTold = MD_OK;
                 }
               if (errMQTT < MD_OK)
                 {
-                  if ((errMQTT != errMQTTold) && (errMQTT != -3))
+                  if (errMQTT != errMQTTold)
                     {
                       SVAL(text, cerrMQTT[(-1) * errMQTT]);
+                      if (errMQTT != -7) // not connected stays
+                        { errMQTT = MD_OK; }
                     }
-                  if (errMQTT != -7) // not connected stays
-                    { errMQTT = MD_OK; }
                 }
             }
 

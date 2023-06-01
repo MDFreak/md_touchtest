@@ -71,28 +71,6 @@
         #if (USE_BME680_I2C > OFF )
             #define BME680_I2C         I2C1
           #endif
-#ifdef UNUSED
-          #if (USE_ADC1115_I2C > OFF)
-              #ifndef USE_INPUT_CYCLE
-                  #define USE_INPUT_CYCLE
-                #endif
-              #define ADC1115_I2C          I2C1
-              #define ADC1115_1_ADDR       I2C_ADS1115_48
-              #define ADC1115_1_CHIDXS      4
-              #if (USE_ADC1115_I2C > 1)
-                  #define ADC1115_2_ADDR   I2C_ADS1115_48 //I2C_ADS1115_49
-                  #define ADC1115_2_CHIDXs  4
-                  #if (USE_ADC1115_I2C > 2)
-                      #define ADC1115_3_ADDR   I2C_ADS1115_48 //I2C_ADS1115_4A
-                      #define ADC1115_3_CHIDXs  4
-                      #if (USE_ADC1115_I2C > 3)
-                          #define ADC1115_4_ADDR   I2C_ADS1115_48 //I2C_ADS1115_4B
-                          #define ADC1115_4_CHIDXs  4
-                        #endif
-                    #endif
-                #endif
-            #endif
-#endif
     // --- network
       // --- WIFI
         #if (USE_WIFI > OFF)
@@ -272,10 +250,10 @@
                       #define TOUCHSIZE      24
                           // 0:USB oben, 1:USB links, 2:USB unten, 3:USB rechts
                         #if (TOUCHSIZE == 24)
-                          #define TOUCH_ROTATION 2 //muss fuer 2.4 Zoll Display 1/2 und fuer 2.8 Zoll Display 3/0 sein
-                        #else
-                          #define TOUCH_ROTATION 3 //muss fuer 2.4 Zoll Display 1/2 und fuer 2.8 Zoll Display 3/0 sein
-                        #endif
+                            #define TOUCH_ROTATION 2 //muss fuer 2.4 Zoll Display 1/2 und fuer 2.8 Zoll Display 3/0 sein
+                          #else
+                            #define TOUCH_ROTATION 3 //muss fuer 2.4 Zoll Display 1/2 und fuer 2.8 Zoll Display 3/0 sein
+                          #endif
                       #define DATE_DISP_COL  0
                       #define DATE_DISP_LINE 9      // line on display for date / time
                     // text display area
@@ -284,7 +262,7 @@
                       #if (TOUCH_ROTATION == 0 || TOUCH_ROTATION ==2)
                           #define DISP_W     240
                           #define DISP_H     320
-                      #else
+                        #else
                           #define DISP_W     320
                           #define DISP_H     240
                         #endif
@@ -784,7 +762,7 @@
               #define USE_OUTPUT_CYCLE
             #endif
         #endif
-    // analog channels
+    // --- analog channels
       /*  ADC channels
             ***_ADC_RES 12                    --> resolution 12 bit (def)
             ***_ADC_ATT  ADC_ATTEN_DB_0   -->  range 0 -  800 mV
@@ -1128,6 +1106,28 @@
             #define OUTPUT_CYCLE_MS 20u
           #endif
 
+  // --- devices
+    // --- Bluetti management system
+      #if (USE_BLUETTI > OFF)
+          #define BLUETTI_TYPE BLUETTI_AC300
+          //#define BLUETTI_TYPE BLUETTI_EP500P
+          #define BLUETOOTH_QUERY_MESSAGE_DELAY 1000
+          #define MAX_DISCONNECTED_TIME_UNTIL_REBOOT 5 //device will reboot when wlan/BT/MQTT is not connectet within x Minutes
+          #define SLEEP_TIME_ON_BT_NOT_AVAIL 2 //device will sleep x minutes if restarted is triggered by bluetooth error
+                                               //set to 0 to disable
+          #define DEVICE_STATE_UPDATE  5
+          #define MSG_VIEWER_ENTRY_COUNT 20 //number of lines for web message viewer
+          #define MSG_VIEWER_REFRESH_CYCLE 5 //refresh time for website data in seconds
+          #if (BLUETTI_TYPE == BLUETTI_AC300)
+              #define DEVICE_NAME = "BLUETTI_AC300"
+              #include <Device_AC300.h>
+              #define BLUETTI_AC300_SN      "AC300223500057654"
+              #define BLUETTI_UUID_SERVICE  "0000ff00-0000-1000-8000-00805f9b34fb"
+              // The characteristics of Bluetti Devices
+              #define BLUETTI_UUID_WRITE    "0000ff02-0000-1000-8000-00805f9b34fb"
+              #define BLUETTI_UUID_NOTIFY   "0000ff01-0000-1000-8000-00805f9b34fb"
+            #endif
+        #endif
   // ----------------------------------------------------------------
   // --- board management
   // ----------------------------------------------------------------

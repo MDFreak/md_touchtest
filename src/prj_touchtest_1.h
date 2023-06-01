@@ -80,6 +80,7 @@
       #define USE_WIFI              ON  // ON
       //#define USE_ATWIFI            OFF  // ON
       #define USE_NTP_SERVER        ON  // ON
+      #define USE_BTOOTH            OFF
       #define USE_LOCAL_IP          ON  // ON
       #define USE_WEBSERVER         ON  // ON
       #define USE_MQTT              ON
@@ -90,6 +91,8 @@
     // --- test components
       #define USE_CTRL_POTI         OFF   // [0, 1, ....] limited by analog inputs
       #define USE_CTRL_SW_INP       OFF // 1   // [0, 1, ....] limited by digital pins
+    // --- devices
+      #define USE_BLUETTI           OFF
     // usage of peripherals
       #define USE_PWM_OUT           3 * USE_RGBLED_PWM + USE_FAN_PWM + USE_OUT_FREQ_PWM + USE_BUZZER_PWM // max 16
       #define USE_CNT_INP           USE_GEN_CNT_INP     // max 2 * 8 independent

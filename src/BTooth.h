@@ -2,7 +2,7 @@
 #define BTOOTH_H
 #include "Arduino.h"
 #include "BLEDevice.h"
-#include <prj_conf_bluetti_bridge.h>
+#include <prj_conf_touchtest_1.h>
 //#include "Config.h"
 //#include "Device_AC300.h"
 #include "PayloadParser.h"
